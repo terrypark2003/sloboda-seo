@@ -28,7 +28,7 @@ export const phases: Phase[] = [
       {
         id: "p1-1",
         title: "공식몰 홈 메타 description 70~150자로 확장",
-        detail: "현재 9자(SLOBODA 쇼핑몰 | 재생크림). EGF·시술후·민감성·피부장벽 키워드 자연스럭게 포함.",
+        detail: "현재 9자(SLOBODA 쇼핑몰 | 재생크림). EGF·시술후·민감성·피부장벽 키워드 자연스럽게 포함.",
         weight: 4,
         link: { label: "코드 스니펫 보기", url: "/codes#home-meta" },
       },

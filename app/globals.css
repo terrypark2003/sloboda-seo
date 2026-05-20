@@ -9,7 +9,7 @@ html, body {
 
 ::selection { background: #b9d0e6; color: #0c1a2b; }
 
-/* 토큰성이 작은 카드 */
+/* 토큰성 작은 카드 */
 .card {
   @apply bg-white rounded-2xl border border-slate-200 shadow-sm;
 }
