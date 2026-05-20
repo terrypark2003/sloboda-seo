@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body {
+  background: #f5f7fb;
+  color: #1a2333;
+}
+
+::selection { background: #b9d0e6; color: #0c1a2b; }
+
+/* 토큰성이 작은 카드 */
+.card {
+  @apply bg-white rounded-2xl border border-slate-200 shadow-sm;
+}
+.card-pad { @apply p-5; }
+
+/* 버튼 */
+.btn {
+  @apply inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-sm font-medium transition;
+}
+.btn-primary { @apply bg-brand-600 text-white hover:bg-brand-700; }
+.btn-ghost { @apply text-slate-600 hover:bg-slate-100; }
+.btn-outline { @apply border border-slate-300 text-slate-700 hover:bg-slate-50; }
+
+/* 입력 */
+.input {
+  @apply border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white;
+}
+
+/* 작은 칩 */
+.chip {
+  @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+}
+
+/* 코드 블록 */
+pre.code {
+  @apply bg-slate-900 text-slate-100 rounded-lg p-4 text-[12.5px] leading-5 overflow-x-auto;
+}
