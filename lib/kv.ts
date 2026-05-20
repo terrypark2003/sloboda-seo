@@ -8,8 +8,9 @@ let cached: VercelKV | null | undefined;
 
 function getClient(): VercelKV | null {
   if (cached !== undefined) return cached;
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
+  // SLB_KV_* takes priority (user-added), then KV_REST_API_* (Vercel-integration injected)
+  const url = process.env.SLB_KV_URL || process.env.KV_REST_API_URL;
+  const token = process.env.SLB_KV_TOKEN || process.env.KV_REST_API_TOKEN;
   if (!url || !token) {
     cached = null;
     return null;
