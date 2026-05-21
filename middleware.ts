@@ -1,39 +1,44 @@
-// HTTP Basic Auth로 사이트 전체 보호.
-// 환경변수 SITE_PASSWORD가 설정돼 있으면 활성화, 없으면 우회.
-// 브라우저는 한 번 인증 후 같은 도메인의 모든 요청에 자동으로 헤더를 첨부함.
+// 쿠키 기반 비밀번호 보호.
+// 처음 접속 시 로그인 페이지 → 비밀번호 맞으면 30일간 쿠키 저장 → 자동 통과.
 import { NextRequest, NextResponse } from "next/server";
 
 export const config = {
-  // 미들웨어가 적용될 경로. 정적 리소스만 제외.
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
 
+const COOKIE = "slb-auth";
+
 export function middleware(req: NextRequest) {
-  const password = process.env.SITE_PASSWORD;
-  if (!password) {
-    return NextResponse.next();
+  const pw = process.env.SITE_PASSWORD;
+  if (!pw) return NextResponse.next();
+
+  // 이미 인증된 쿠키 있음
+  if (req.cookies.get(COOKIE)?.value === pw) return NextResponse.next();
+
+  // ?password= 쿼리로 인증 시도
+  const queryPw = req.nextUrl.searchParams.get("password");
+  if (queryPw === pw) {
+    const url = req.nextUrl.clone();
+    url.searchParams.delete("password");
+    const res = NextResponse.redirect(url);
+    res.cookies.set(COOKIE, pw, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30, // 30일
+    });
+    return res;
   }
 
-  const auth = req.headers.get("authorization");
-  if (auth) {
-    const [scheme, encoded] = auth.split(" ");
-    if (scheme === "Basic" && encoded) {
-      try {
-        const decoded = atob(encoded);
-        const idx = decoded.indexOf(":");
-        const pass = idx >= 0 ? decoded.slice(idx + 1) : decoded;
-        if (pass === password) {
-          return NextResponse.next();
-        }
-      } catch {}
-    }
-  }
-
-  return new NextResponse("Authentication required", {
+  // 로그인 페이지 HTML
+  return new NextResponse(LOGIN_HTML, {
     status: 401,
-    headers: {
-      "WWW-Authenticate": 'Basic realm="SLOBODA SEO Dashboard"',
-      "Content-Type": "text/plain; charset=utf-8",
-    },
+    headers: { "Content-Type": "text/html; charset=utf-8" },
   });
 }
+
+const LOGIN_HTML = `<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8">
+<meta 
