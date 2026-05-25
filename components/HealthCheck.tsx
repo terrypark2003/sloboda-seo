@@ -10,6 +10,11 @@ const SITES = [
   { label: "재생크림 상품", url: "https://slobodacosmetics.com/product/sloboda-no7-recovery-cream/31/" },
 ];
 
+// 사용자 브라우저에서 직접 Google PageSpeed Insights API 호출.
+// 이렇게 하면 사용자 IP의 quota를 쓰므로 키 없이도 안정적.
+// 키가 있으면 /api/pagespeed?key=... 식으로 우회 가능.
+const PAGESPEED_BASE = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed";
+
 export default function HealthCheck() {
   const { state, setHealth } = useStore();
   const [siteIdx, setSiteIdx] = useState(0);
@@ -24,12 +29,35 @@ export default function HealthCheck() {
     setResult(null);
     try {
       const u = SITES[siteIdx].url;
-      const res = await fetch(`/api/pagespeed?url=${encodeURIComponent(u)}&strategy=${strategy}`);
-      const data = await res.json();
-      if (!data?.ok) throw new Error(data?.error || "측정 실패");
-      setResult({ score: data.score, metrics: data.metrics });
-      if (strategy === "mobile") setHealth(data.score, state.lastHealthCheck?.desktop);
-      else setHealth(state.lastHealthCheck?.mobile, data.score);
+      const params = new URLSearchParams({
+        url: u,
+        strategy,
+        category: "performance",
+      });
+      // 클라이언트 직접 호출
+      const res = await fetch(`${PAGESPEED_BASE}?${params.toString()}`);
+      if (!res.ok) {
+        const errBody = await res.text();
+        let msg = `측정 실패 (HTTP ${res.status})`;
+        try {
+          const j = JSON.parse(errBody);
+          if (j?.error?.message) msg = j.error.message;
+        } catch {}
+        throw new Error(msg);
+      }
+      const data: any = await res.json();
+      const score = Math.round((data?.lighthouseResult?.categories?.performance?.score ?? 0) * 100);
+      const audits = data?.lighthouseResult?.audits ?? {};
+      const metrics = {
+        lcp: audits["largest-contentful-paint"]?.displayValue,
+        fcp: audits["first-contentful-paint"]?.displayValue,
+        cls: audits["cumulative-layout-shift"]?.displayValue,
+        tbt: audits["total-blocking-time"]?.displayValue,
+        si: audits["speed-index"]?.displayValue,
+      };
+      setResult({ score, metrics });
+      if (strategy === "mobile") setHealth(score, state.lastHealthCheck?.desktop);
+      else setHealth(state.lastHealthCheck?.mobile, score);
     } catch (e: any) {
       setError(e?.message || "측정 실패");
     } finally {
@@ -50,11 +78,18 @@ export default function HealthCheck() {
           <option value="desktop">데스크톱</option>
         </select>
         <button className="btn btn-primary" onClick={run} disabled={loading}>
-          {loading ? "측정 중..." : "지금 측정"}
+          {loading ? "측정 중... (30~60초)" : "지금 측정"}
         </button>
       </div>
 
-      {error && <div className="mt-3 text-sm text-rose-600">{error}</div>}
+      {error && (
+        <div className="mt-3 text-sm text-rose-600">
+          {error}
+          <div className="text-xs text-slate-500 mt-1">
+            Google PageSpeed Insights는 익명 호출도 가능하지만 일시적으로 한도가 초과될 수 있습니다. 잠시 후 다시 시도하거나, 더 자주 측정하려면 PAGESPEED_API_KEY 환경변수를 추가하세요.
+          </div>
+        </div>
+      )}
 
       {result && (
         <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
